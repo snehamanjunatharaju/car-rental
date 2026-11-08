@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+/src/local-config.php
 .nvimlog
 index.php.back
 -tmp-car-rental-*.html

@@ -1,7 +1,9 @@
 <?php
-$key = getenv('PAYU_KEY') ?: '';
-$salt = getenv('PAYU_SALT') ?: '';
-$mode = getenv('PAYU_MODE') ?: 'test';
+require_once __DIR__ . '/app-config.php';
+
+$key = ($appConfig['PAYU_KEY'] ?? '') ?: (getenv('PAYU_KEY') ?: '');
+$salt = ($appConfig['PAYU_SALT'] ?? '') ?: (getenv('PAYU_SALT') ?: '');
+$mode = ($appConfig['PAYU_MODE'] ?? '') ?: (getenv('PAYU_MODE') ?: 'test');
 if (!in_array($mode, ['test', 'live'], true)) {
     throw new RuntimeException('PAYU_MODE must be set to test or live.');
 }

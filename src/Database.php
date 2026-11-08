@@ -1,11 +1,13 @@
 <?php
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-$databaseHost = getenv('DB_HOST') ?: 'localhost';
-$databaseUser = getenv('DB_USER') ?: 'root';
-$databasePassword = getenv('DB_PASSWORD');
-$databaseName = getenv('DB_NAME') ?: 'car_rental';
-$databasePort = getenv('DB_PORT') ?: '3306';
+require_once __DIR__ . '/app-config.php';
+
+$databaseHost = ($appConfig['DB_HOST'] ?? '') ?: (getenv('DB_HOST') ?: 'localhost');
+$databaseUser = ($appConfig['DB_USER'] ?? '') ?: (getenv('DB_USER') ?: 'root');
+$databaseName = ($appConfig['DB_NAME'] ?? '') ?: (getenv('DB_NAME') ?: 'car_rental');
+$databasePort = (string) (($appConfig['DB_PORT'] ?? '') ?: (getenv('DB_PORT') ?: '3306'));
+$databasePassword = $appConfig['DB_PASSWORD'] ?? getenv('DB_PASSWORD');
 
 if ($databasePassword === false) {
     $databasePassword = '';
