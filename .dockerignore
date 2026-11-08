@@ -1,0 +1,8 @@
+.git
+.env
+.env.*
+.nvimlog
+index.php.back
+-tmp-car-rental-*.html
+admin/uploaded-files/customer-doc/
+database/car_rental*.sql
