@@ -2,6 +2,10 @@
 
 A server-rendered car-rental demo built with PHP and MySQL. The customer flow covers searching a sample Bengaluru fleet for a date range, comparing indicative daily estimates, reviewing a booking total, and choosing PayU test checkout or cash on delivery.
 
+## Live demo
+
+Visit the deployed application at [sneha-car-rental.infinityfree.me](https://sneha-car-rental.infinityfree.me/).
+
 ## What it demonstrates
 
 - Responsive, keyboard-accessible storefront with a date-led search and sample fleet data.
