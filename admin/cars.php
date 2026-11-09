@@ -1,129 +1,129 @@
 <?php
 include './header.php';
 require_once '../src/Database.php';
+require_once '../src/car-rental-view.php';
 
-//$db = Database::getInstance();
+if (!isset($_SESSION['admin_car_list_csrf_token']) || !is_string($_SESSION['admin_car_list_csrf_token'])) {
+    $_SESSION['admin_car_list_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['admin_car_list_csrf_token'];
+$message = '';
+$error = '';
 
-if (isset($_GET['delete'])) {
-    $id = $db->real_escape_string($_GET['delete']);
-    $sql = "SELECT * from cars WHERE id = '$id'";
-    $res = $db->query($sql);
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['delete_car'])) {
+    $carId = is_string($_POST['delete_car']) && ctype_digit($_POST['delete_car'])
+        ? (int) $_POST['delete_car']
+        : 0;
+    $submittedToken = isset($_POST['csrf_token']) && is_string($_POST['csrf_token'])
+        ? $_POST['csrf_token']
+        : '';
 
-    if ($res->num_rows < 1) {
-        header('Location:' . $_SERVER['PHP_SELF']);
-        exit();
-    }
-
-    $sql = "DELETE FROM cars WHERE id = '$id'";
-    if ($db->query($sql) === true) {
-        $msg = "Car deleted";
+    if ($carId < 1 || !hash_equals($csrfToken, $submittedToken)) {
+        $error = 'The request expired or the car selection was invalid. Reload and try again.';
     } else {
-        $error = "Can not delete car";
+        $bookingCheck = $db->prepare('SELECT id FROM booking WHERE car = ? LIMIT 1');
+        $bookingCheck->bind_param('i', $carId);
+        $bookingCheck->execute();
+
+        if ($bookingCheck->get_result()->fetch_assoc()) {
+            $error = 'This car has booking records and cannot be deleted.';
+        } else {
+            $carLookup = $db->prepare('SELECT image1, image2, image3 FROM cars WHERE id = ? LIMIT 1');
+            $carLookup->bind_param('i', $carId);
+            $carLookup->execute();
+            $carFiles = $carLookup->get_result()->fetch_assoc();
+
+            if (!$carFiles) {
+                $error = 'That car could not be found.';
+            } else {
+                $delete = $db->prepare('DELETE FROM cars WHERE id = ?');
+                $delete->bind_param('i', $carId);
+                $delete->execute();
+
+                if ($delete->affected_rows !== 1) {
+                    $error = 'The car could not be deleted. Please try again.';
+                } else {
+                    foreach (['image1', 'image2', 'image3'] as $column) {
+                        $fileName = basename((string) $carFiles[$column]);
+                        $filePath = __DIR__ . '/uploaded-files/cars/' . $fileName;
+                        if ($fileName !== '' && is_file($filePath)) {
+                            if (!unlink($filePath)) {
+                                error_log('Could not remove car image after car deletion: ' . $filePath);
+                            }
+                        }
+                    }
+                    $message = 'Car deleted.';
+                }
+            }
+        }
     }
 }
 
-
-
-$sql = "SELECT * FROM cars ORDER BY id DESC";
-$res = $db->query($sql);
-$cars = [];
-while ($row = $res->fetch_object()) {
-    $cars[] = $row;
-}
-
+$result = $db->query(
+    'SELECT cars.id, cars.car_name, cars.model, cars.transmission, brands.brand_name
+     FROM cars
+     LEFT JOIN brands ON brands.id = cars.brand
+     ORDER BY cars.id DESC'
+);
+$cars = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <div class="container-fluid">
     <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item active"><a href="">Dashboard</a> / Cars</li>
+        <li class="breadcrumb-item"><a href="./dashboard.php">Dashboard</a> / Cars</li>
     </ol>
-    <?php if (isset($error) && strlen($error) > 1): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo $error; ?>
-        </div>
-    <?php endif ?>
-    <?php if (isset($msg) && strlen($msg) > 1): ?>
-        <div class="alert alert-success" role="alert">
-            <strong><i class="fas fa-check"></i> Success! </strong>
-            <?php echo $msg; ?>
-        </div>
-    <?php endif ?>
-
+    <?php if ($message !== ''): ?>
+        <div class="alert alert-success" role="status"><?php echo app_escape($message); ?></div>
+    <?php endif; ?>
+    <?php if ($error !== ''): ?>
+        <div class="alert alert-danger" role="alert"><?php echo app_escape($error); ?></div>
+    <?php endif; ?>
 
     <div class="row">
         <div class="col-lg-12 text-right mb-2">
-            <a class="btn btn-primary font-weight-bold" href="./add-car.php"><i class="fas fa-plus"></i> Add Car</a>
+            <a class="btn btn-primary font-weight-bold" href="./add-car.php"><i class="fas fa-plus"></i> Add car</a>
         </div>
     </div>
-    <!-- DataTables Example -->
     <div class="card mb-3">
-        <div class="card-header">
-            <i class="fas fa-table"></i>
-            Cars
-        </div>
+        <div class="card-header"><i class="fas fa-table"></i> Cars</div>
         <div class="card-body">
-
-
             <div class="table-responsive">
                 <table class="table table-bordered table-sm text-center dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th>sl.no</th>
-                            <th width="20%">Name</th>
-                            <th width="20%">Brand</th>
-                            <th width="20%">Model</th>
-                            <th width="20%">Transmission</th>
-                            <th width="35%">Action</th>
+                            <th>Car ID</th>
+                            <th>Name</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Transmission</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         <?php foreach ($cars as $car): ?>
                             <tr>
-                                <td></td>
-                                <td><?php echo htmlspecialchars($car->car_name) ?></td>
+                                <td><?php echo (int) $car['id']; ?></td>
+                                <td><?php echo app_escape($car['car_name']); ?></td>
+                                <td><?php echo app_escape($car['brand_name'] ?? 'Brand unavailable'); ?></td>
+                                <td><?php echo app_escape($car['model']); ?></td>
+                                <td><?php echo app_escape($car['transmission']); ?></td>
                                 <td>
-                                    <?php
-                                    // Assuming $db is your database connection
-                                    $brandId = $car->brand; 
-                                   
-                                    $sql = "SELECT brand_name FROM brands WHERE id = '$brandId'";
-                                    $result = $db->query($sql);
-                                    if ($result->num_rows > 0) {
-                                        $brandName = $result->fetch_assoc()['brand_name'];
-                                        echo htmlspecialchars($brandName);
-                                    } else {
-                                        echo 'Brand not found';
-                                    }
-                                    ?>
-
-                                </td>
-                               
-                                <td><?php echo htmlspecialchars($car->model) ?></td>
-                                <td> <?php echo htmlspecialchars($car->transmission) ?></td>
-                                <td>
-                                    <a href="./view-car.php?id=<?php echo $car->id ?>" class="btn btn-info btn-sm"><i
-                                            class="fa fa-eye"></i></a>
-                                            <a href="" class="btn btn-success btn-sm"><i class="fa fa-edit"></i></a>
-
-                                    <a onclick="return confirm('Are you sure to delete car data?')"
-                                        href="<?php echo $_SERVER['PHP_SELF'] ?>?delete=<?php echo $car->id ?>"
-                                        class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
+                                    <a href="./view-car.php?id=<?php echo (int) $car['id']; ?>"
+                                        class="btn btn-info btn-sm" aria-label="View car">View</a>
+                                    <form method="post" action="./cars.php" class="d-inline"
+                                        onsubmit="return confirm('Delete this car and its uploaded images? Cars with booking records cannot be deleted.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo app_escape($csrfToken); ?>">
+                                        <button type="submit" name="delete_car" value="<?php echo (int) $car['id']; ?>"
+                                            class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
                                 </td>
                             </tr>
-                        <?php endforeach ?>
+                        <?php endforeach; ?>
                     </tbody>
-
                 </table>
             </div>
         </div>
     </div>
-
-
 </div>
-<!-- /.container-fluid -->
 
-
-<?php
-include './footer.php';
-?>
+<?php include './footer.php'; ?>

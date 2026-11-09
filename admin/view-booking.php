@@ -88,8 +88,11 @@ if ($booking && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['booking_s
         $message = 'Your session expired. Reload the page and try again.';
     } elseif (!in_array($newStatus, $allowedStatuses, true)) {
         $message = 'Choose a valid booking status.';
-    } elseif ($newStatus === 'Completed' && strtolower((string) $booking->payment_status) !== 'success') {
-        $message = 'A booking cannot be completed until its payment is confirmed.';
+    } elseif (
+        in_array($newStatus, ['Live', 'Completed'], true)
+        && strtolower((string) $booking->payment_status) !== 'success'
+    ) {
+        $message = 'A booking cannot be live or completed until its payment is confirmed.';
     } else {
         $update = $db->prepare('UPDATE booking SET booking_status = ? WHERE id = ?');
         $update->bind_param('si', $newStatus, $bookingId);

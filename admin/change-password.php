@@ -32,8 +32,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'Your form expired. Reload the page and try again.';
     } elseif ($oldPassword === '' || $newPassword === '' || $confirmPassword === '') {
         $error = 'Enter your current password and both new password fields.';
-    } elseif (strlen($newPassword) < 8 || strlen($newPassword) > 72) {
-        $error = 'Choose a new password between 8 and 72 characters.';
+    } elseif (strlen($newPassword) < 12 || strlen($newPassword) > 72) {
+        $error = 'Choose a new password between 12 and 72 characters.';
     } elseif (!hash_equals($newPassword, $confirmPassword)) {
         $error = 'The new password and confirmation do not match.';
     } elseif (hash_equals($oldPassword, $newPassword)) {
@@ -84,12 +84,12 @@ include './header.php';
             <div class="form-group">
                 <label for="new-pass">New password</label>
                 <input id="new-pass" type="password" name="new-pass" class="form-control"
-                    minlength="8" maxlength="72" autocomplete="new-password" required>
+                    minlength="12" maxlength="72" autocomplete="new-password" required>
             </div>
             <div class="form-group">
                 <label for="confirm-pass">Confirm new password</label>
                 <input id="confirm-pass" type="password" name="confirm-pass" class="form-control"
-                    minlength="8" maxlength="72" autocomplete="new-password" required>
+                    minlength="12" maxlength="72" autocomplete="new-password" required>
             </div>
             <button type="submit" name="submit" value="1" class="btn btn-primary float-right">Change password</button>
         </form>

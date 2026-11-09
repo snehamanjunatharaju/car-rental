@@ -29,7 +29,7 @@ $csrfToken = $_SESSION['admin_brand_csrf_token'];
                 Add Brand
             </div>
             <div class="card-body">
-                <form id="formBrand" method="post" action="./src/brand.php"
+                <form id="formBrand" method="post" action="../src/brand-add.php"
                                 enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
                     <div class="form-row">
@@ -71,6 +71,7 @@ const nameError = document.querySelector('#nameError');
 const brandImageError = document.querySelector('#brandImageError');
 
 const formBrand = document.querySelector('#formBrand');
+const messageBox = document.querySelector('#msg');
 
 
 
@@ -80,7 +81,7 @@ formBrand.addEventListener('submit', function(event) {
     //const fieldCorrectionError = document.querySelector('#fieldCorrectionError');
     //const gurnameError = document.querySelector('#gurnameError');
     clearErrorMessage();
-    msg.innerHTML = '';
+    messageBox.textContent = '';
     fetch('../src/brand-add.php', {
             method: 'POST',
             body: data
@@ -88,21 +89,21 @@ formBrand.addEventListener('submit', function(event) {
         .then(res => {
             if (res.status == 200) {
                 res.json().then(json => {
-                    msg.innerHTML =
-                        '<div class="alert alert-success"><strong><i class="fa fa-check"></i> Success! </strong>' +
-                        json.msg + '</div>'
+                    messageBox.textContent = json.msg;
+                    messageBox.className = 'alert alert-success';
                 })
             } else {
                 res.json().then(json => {
                     if (json.errors) displayErrors(json.errors);
-                    msg.innerHTML =
-                        '<div class="alert alert-danger"><strong><i class="fa fa-times"></i> Failed! </strong>' +
-                        json.msg + '</div>'
+                    messageBox.textContent = json.msg;
+                    messageBox.className = 'alert alert-danger';
                 })
             }
         })
         .catch(error => {
             console.error(error);
+            messageBox.textContent = 'Could not add the brand. Please try again.';
+            messageBox.className = 'alert alert-danger';
         })
 })
 
@@ -110,16 +111,16 @@ function displayErrors(error) {
     //const fieldCorrectionError = document.querySelector('#fieldCorrectionError');
    
 
-    nameError.innerHTML = error.name;
-    brandImageError.innerHTML = error.brandImage;
+    nameError.textContent = error.name || '';
+    brandImageError.textContent = error.brandImage || '';
 
 }
 
 function clearErrorMessage() {
 
 
-    nameError.innerHTML = '';
-    brandImageError.innerHTML = '';
+    nameError.textContent = '';
+    brandImageError.textContent = '';
 
 }
 </script>

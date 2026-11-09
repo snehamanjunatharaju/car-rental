@@ -44,6 +44,28 @@ if ($customer && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'Your form expired. Reload the page and try again.';
     } elseif (!in_array($status, ['Verified', 'Pending'], true)) {
         $error = 'Choose a valid document status.';
+    } elseif ($status === 'Verified') {
+        $requiredDocuments = [
+            'driving_license_image1' => 'DL',
+            'driving_license_image2' => 'DL',
+            'address_proof_image' => 'address-proof',
+        ];
+        foreach ($requiredDocuments as $column => $folder) {
+            $fileName = basename((string) $customer->$column);
+            $filePath = __DIR__ . '/uploaded-files/customer-doc/' . $folder . '/' . $fileName;
+            if ($fileName === '' || !is_file($filePath)) {
+                $error = 'Upload all required verification documents before marking this customer Verified.';
+                break;
+            }
+        }
+
+        if ($error === '') {
+            $update = $db->prepare('UPDATE customers SET is_verified = ? WHERE id = ?');
+            $update->bind_param('si', $status, $customerId);
+            $update->execute();
+            $customer->is_verified = $status;
+            $message = 'Document status updated.';
+        }
     } else {
         $update = $db->prepare('UPDATE customers SET is_verified = ? WHERE id = ?');
         $update->bind_param('si', $status, $customerId);
@@ -105,14 +127,22 @@ include './header.php';
                             <td colspan="3" class="image-box">
                                 <?php if ($frontImage !== ''): ?>
                                     <a href="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($frontImage); ?>">
-                                        <img src="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($frontImage); ?>" alt="Driving licence front" class="image">
+                                        <?php if (app_profile_document_is_image($frontImage)): ?>
+                                            <img src="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($frontImage); ?>" alt="Driving licence front" class="image">
+                                        <?php else: ?>
+                                            View driving licence front document
+                                        <?php endif; ?>
                                     </a>
                                 <?php else: ?>
                                     <span>No front image uploaded</span>
                                 <?php endif; ?>
                                 <?php if ($backImage !== ''): ?>
                                     <a href="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($backImage); ?>">
-                                        <img src="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($backImage); ?>" alt="Driving licence back" class="image">
+                                        <?php if (app_profile_document_is_image($backImage)): ?>
+                                            <img src="./uploaded-files/customer-doc/DL/<?php echo rawurlencode($backImage); ?>" alt="Driving licence back" class="image">
+                                        <?php else: ?>
+                                            View driving licence back document
+                                        <?php endif; ?>
                                     </a>
                                 <?php else: ?>
                                     <span>No back image uploaded</span>
@@ -121,14 +151,21 @@ include './header.php';
                         </tr>
                         <tr>
                             <th>Address proof number</th>
-                            <td colspan="3"><?php echo app_escape($customer->address_proof_no); ?></td>
+                            <td colspan="3">
+                                <?php echo app_escape($customer->address_proof_type ?? ''); ?>
+                                <?php echo app_escape($customer->address_proof_no); ?>
+                            </td>
                         </tr>
                         <tr>
                             <th>Address proof image</th>
                             <td colspan="3">
                                 <?php if ($addressProofImage !== ''): ?>
                                     <a href="./uploaded-files/customer-doc/address-proof/<?php echo rawurlencode($addressProofImage); ?>">
-                                        <img src="./uploaded-files/customer-doc/address-proof/<?php echo rawurlencode($addressProofImage); ?>" alt="Address proof" class="image">
+                                        <?php if (app_profile_document_is_image($addressProofImage)): ?>
+                                            <img src="./uploaded-files/customer-doc/address-proof/<?php echo rawurlencode($addressProofImage); ?>" alt="Address proof" class="image">
+                                        <?php else: ?>
+                                            View address proof document
+                                        <?php endif; ?>
                                     </a>
                                 <?php else: ?>
                                     <span>No address proof image uploaded</span>
@@ -146,9 +183,14 @@ include './header.php';
                 <label for="customer-status">Document status</label>
                 <select id="customer-status" name="status" class="form-control">
                     <option value="Pending" <?php echo $customer->is_verified === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                    <option value="Verified" <?php echo $customer->is_verified === 'Verified' ? 'selected' : ''; ?>>Verified</option>
+                    <option value="Verified" <?php echo $customer->is_verified === 'Verified' ? 'selected' : ''; ?>>
+                        Verified
+                    </option>
                 </select>
             </div>
+            <p class="form-text text-muted">
+                All required documents must be uploaded before verification can be approved.
+            </p>
             <button type="submit" class="btn btn-primary btn-sm">Save document status</button>
         </form>
     <?php endif; ?>

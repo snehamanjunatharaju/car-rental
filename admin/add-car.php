@@ -1,6 +1,7 @@
 <?php
 include './header.php';
 require_once '../src/Database.php';
+require_once '../src/car-rental-view.php';
 
 if (!isset($_SESSION['admin_car_csrf_token']) || !is_string($_SESSION['admin_car_csrf_token'])) {
     $_SESSION['admin_car_csrf_token'] = bin2hex(random_bytes(32));
@@ -53,7 +54,7 @@ while ($row = $res->fetch_object()) {
                             <option value="">--select--</option>
                                 <?php foreach ($brands as $brand): ?>
                                   
-                                <option value="<?php echo $brand->id ?>"><?php echo $brand->brand_name ?></option>
+                                <option value="<?php echo (int) $brand->id ?>"><?php echo app_escape($brand->brand_name); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <small id="brandError" class="form-text text-danger"></small>
@@ -120,15 +121,15 @@ while ($row = $res->fetch_object()) {
                             <label for="name">AC</label><br/>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="ac"
-                                    id="flexRadioDefault1"  value="1">
-                                <label class="form-check-label" for="flexRadioDefault1">
+                                    id="ac_yes" value="1">
+                                <label class="form-check-label" for="ac_yes">
                                     Yes
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="ac"
-                                    id="flexRadioDefault2"  value="0" checked>
-                                <label class="form-check-label" for="flexRadioDefault2">
+                                    id="ac_no" value="0" checked>
+                                <label class="form-check-label" for="ac_no">
                                     No
                                 </label>
                             </div>
@@ -137,15 +138,15 @@ while ($row = $res->fetch_object()) {
                             <label for="name">Sun roof</label><br/>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="sun_roof"
-                                    id="flexRadioDefault1"  value="1">
-                                <label class="form-check-label" for="flexRadioDefault1">
+                                    id="sun_roof_yes" value="1">
+                                <label class="form-check-label" for="sun_roof_yes">
                                     Yes
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="sun_roof"
-                                    id="flexRadioDefault2"  value="0" checked>
-                                <label class="form-check-label" for="flexRadioDefault2">
+                                    id="sun_roof_no" value="0" checked>
+                                <label class="form-check-label" for="sun_roof_no">
                                     No
                                 </label>
                             </div>
@@ -154,15 +155,15 @@ while ($row = $res->fetch_object()) {
                             <label for="name">Air Bags</label><br/>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="air_bags"
-                                    id="flexRadioDefault1"  value="1">
-                                <label class="form-check-label" for="flexRadioDefault1">
+                                    id="air_bags_yes" value="1">
+                                <label class="form-check-label" for="air_bags_yes">
                                     Yes
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="air_bags"
-                                    id="flexRadioDefault2"  value="0" checked>
-                                <label class="form-check-label" for="flexRadioDefault2">
+                                    id="air_bags_no" value="0" checked>
+                                <label class="form-check-label" for="air_bags_no">
                                     No
                                 </label>
                             </div>
@@ -171,15 +172,15 @@ while ($row = $res->fetch_object()) {
                             <label for="name">Central Lock</label><br/>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="central_lock"
-                                    id="flexRadioDefault1" value="1">
-                                <label class="form-check-label" for="flexRadioDefault1">
+                                    id="central_lock_yes" value="1">
+                                <label class="form-check-label" for="central_lock_yes">
                                     Yes
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="central_lock"
-                                    id="flexRadioDefault2"  value="0" checked>
-                                <label class="form-check-label" for="flexRadioDefault2">
+                                    id="central_lock_no" value="0" checked>
+                                <label class="form-check-label" for="central_lock_no">
                                     No
                                 </label>
                             </div>
@@ -231,6 +232,7 @@ while ($row = $res->fetch_object()) {
         const pricePerDayError = document.querySelector('#pricePerDayError');
         const regNoError = document.querySelector('#regNoError');
         const carImageError = document.querySelector('#carImageError');
+        const messageBox = document.querySelector('#msg');
 
         const formCar = document.querySelector('#formCar');
 
@@ -241,7 +243,8 @@ while ($row = $res->fetch_object()) {
             let data = new FormData(this);
  
             clearErrorMessage();
-            msg.innerHTML = '';
+            messageBox.textContent = '';
+            messageBox.className = '';
             fetch('../src/car-add.php', {
                 method: 'POST',
                 body: data
@@ -249,22 +252,22 @@ while ($row = $res->fetch_object()) {
                 .then(res => {
                     if (res.status == 200) {
                         res.json().then(json => {
-                            msg.innerHTML =
-                                '<div class="alert alert-success"><strong><i class="fa fa-check"></i> Success! </strong>' +
-                                json.msg + '</div>'
+                            messageBox.textContent = json.msg;
+                            messageBox.className = 'alert alert-success';
                         })
                     } else {
                         res.json().then(json => {
                             console.log(json.errors)
                             if (json.errors) displayErrors(json.errors);
-                            msg.innerHTML =
-                                '<div class="alert alert-danger"><strong><i class="fa fa-times"></i> Failed! </strong>' +
-                                json.msg + '</div>'
+                            messageBox.textContent = json.msg;
+                            messageBox.className = 'alert alert-danger';
                         })
                     }
                 })
                 .catch(error => {
                     console.error(error);
+                    messageBox.textContent = 'Could not add the car. Please try again.';
+                    messageBox.className = 'alert alert-danger';
                 })
         })
 
@@ -272,17 +275,17 @@ while ($row = $res->fetch_object()) {
             //const fieldCorrectionError = document.querySelector('#fieldCorrectionError');
 
 
-            carNameError.innerHTML = error.carName;
-            brandError.innerHTML = error.brandName;
-            carBodyTypeError.innerHTML = error.carBodyType;
-            transmissionError.innerHTML = error.trnsmission;
-            fuelTypeError.innerHTML = error.fuel_type;
-            modelError.innerHTML = error.model;
-            seatingCapacityError.innerHTML = error.seating_capacity;
-            kmDrivenError.innerHTML = error.km_driven;
-            pricePerDayError.innerHTML = error.price_per_day;
-            regNoError.innerHTML = error.reg_no;
-            carImageError.innerHTML = error.image;
+            carNameError.textContent = error.carName || '';
+            brandError.textContent = error.brandName || '';
+            carBodyTypeError.textContent = error.carBodyType || '';
+            transmissionError.textContent = error.transmission || '';
+            fuelTypeError.textContent = error.fuel_type || '';
+            modelError.textContent = error.model || '';
+            seatingCapacityError.textContent = error.seating_capacity || '';
+            kmDrivenError.textContent = error.km_driven || '';
+            pricePerDayError.textContent = error.price_per_day || '';
+            regNoError.textContent = error.reg_no || '';
+            carImageError.textContent = error.image || '';
           
 
         }
@@ -290,17 +293,17 @@ while ($row = $res->fetch_object()) {
         function clearErrorMessage() {
 
 
-            carNameError.innerHTML = '';
-            brandError.innerHTML = '';
-            carBodyTypeError.innerHTML = '';
-            transmissionError.innerHTML = '';
-            fuelTypeError.innerHTML = '';
-            modelError.innerHTML = '';
-            seatingCapacityError.innerHTML ='';
-            kmDrivenError.innerHTML = '';
-            pricePerDayError.innerHTML = '';
-            regNoError.innerHTML = '';
-            carImageError.innerHTML = '';
+            carNameError.textContent = '';
+            brandError.textContent = '';
+            carBodyTypeError.textContent = '';
+            transmissionError.textContent = '';
+            fuelTypeError.textContent = '';
+            modelError.textContent = '';
+            seatingCapacityError.textContent = '';
+            kmDrivenError.textContent = '';
+            pricePerDayError.textContent = '';
+            regNoError.textContent = '';
+            carImageError.textContent = '';
             
 
         }

@@ -5,6 +5,51 @@ function app_escape($value)
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function app_profile_document_file_type($path)
+{
+    if (!is_string($path) || !is_file($path)) {
+        return null;
+    }
+
+    $extensions = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'application/pdf' => 'pdf',
+    ];
+    $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($path);
+    if (!isset($extensions[$mimeType])) {
+        return null;
+    }
+
+    if ($mimeType === 'application/pdf') {
+        $handle = fopen($path, 'rb');
+        $signature = $handle === false ? '' : fread($handle, 5);
+        if ($handle !== false) {
+            fclose($handle);
+        }
+        if ($signature !== '%PDF-') {
+            return null;
+        }
+    } else {
+        $image = @getimagesize($path);
+        if ($image === false || ($image['mime'] ?? '') !== $mimeType) {
+            return null;
+        }
+    }
+
+    return [
+        'extension' => $extensions[$mimeType],
+        'mime_type' => $mimeType,
+        'is_image' => $mimeType !== 'application/pdf',
+    ];
+}
+
+function app_profile_document_is_image($filename)
+{
+    return in_array(strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'], true);
+}
+
 function app_parse_datetime_input($value)
 {
     if (!is_string($value) || $value === '') {
